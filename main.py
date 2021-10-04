@@ -5,6 +5,10 @@ import youtube_dl
 import discord
 from dotenv import load_dotenv
 from discord.ext import commands
+import functools
+import itertools
+import math
+from async_timeout import timeout
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -69,25 +73,25 @@ async def on_member_join(member):
     await member.dm_channel.send(
         f'Hi {member.name}, welcome to my Discord server!')
 
+
 # invite commands
 @bot.command(name='beepu', help="gives ravens special phrase")
 async def raven(ctx):
-    beepu= ['beepu beepu bitch']
+    beepu = ['beepu beepu bitch']
 
     await ctx.send(beepu)
-@bot.command(name= 'invite' , help= 'give the bot invite link' )
+
+
+@bot.command(name='invite', help='give the bot invite link')
 async def link(ctx):
-  botLink = ["https://discord.com/api/oauth2/authorize?client_id=889513117032267816&permissions=0&redirect_uri=https%3A%2F%2Fdiscord.events.stdlib.com%2Fdiscord%2Fauth%2F&scope=bot"]
-  await ctx.send(botLink)
+    botLink = [
+        "https://discord.com/api/oauth2/authorize?client_id=889513117032267816&permissions=0&redirect_uri=https%3A%2F%2Fdiscord.events.stdlib.com%2Fdiscord%2Fauth%2F&scope=bot"
+    ]
+    await ctx.send(botLink)
+
 
 # music feature
 
-
-import functools
-import itertools
-import math
-import discord
-from async_timeout import timeout
 from discord.ext import commands
 
 # Silence useless bug reports messages
@@ -120,13 +124,19 @@ class YTDLSource(discord.PCMVolumeTransformer):
     }
 
     FFMPEG_OPTIONS = {
-        'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+        'before_options':
+        '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
         'options': '-vn',
     }
 
     ytdl = youtube_dl.YoutubeDL(YTDL_OPTIONS)
 
-    def __init__(self, ctx: commands.Context, source: discord.FFmpegPCMAudio, *, data: dict, volume: float = 0.5):
+    def __init__(self,
+                 ctx: commands.Context,
+                 source: discord.FFmpegPCMAudio,
+                 *,
+                 data: dict,
+                 volume: float = 0.5):
         super().__init__(source, volume)
 
         self.requester = ctx.author
@@ -152,14 +162,22 @@ class YTDLSource(discord.PCMVolumeTransformer):
         return '**{0.title}** by **{0.uploader}**'.format(self)
 
     @classmethod
-    async def create_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None):
+    async def create_source(cls,
+                            ctx: commands.Context,
+                            search: str,
+                            *,
+                            loop: asyncio.BaseEventLoop = None):
         loop = loop or asyncio.get_event_loop()
 
-        partial = functools.partial(cls.ytdl.extract_info, search, download=False, process=False)
+        partial = functools.partial(cls.ytdl.extract_info,
+                                    search,
+                                    download=False,
+                                    process=False)
         data = await loop.run_in_executor(None, partial)
 
         if data is None:
-            raise YTDLError('Couldn\'t find anything that matches `{}`'.format(search))
+            raise YTDLError(
+                'Couldn\'t find anything that matches `{}`'.format(search))
 
         if 'entries' not in data:
             process_info = data
@@ -171,10 +189,13 @@ class YTDLSource(discord.PCMVolumeTransformer):
                     break
 
             if process_info is None:
-                raise YTDLError('Couldn\'t find anything that matches `{}`'.format(search))
+                raise YTDLError(
+                    'Couldn\'t find anything that matches `{}`'.format(search))
 
         webpage_url = process_info['webpage_url']
-        partial = functools.partial(cls.ytdl.extract_info, webpage_url, download=False)
+        partial = functools.partial(cls.ytdl.extract_info,
+                                    webpage_url,
+                                    download=False)
         processed_info = await loop.run_in_executor(None, partial)
 
         if processed_info is None:
@@ -188,9 +209,13 @@ class YTDLSource(discord.PCMVolumeTransformer):
                 try:
                     info = processed_info['entries'].pop(0)
                 except IndexError:
-                    raise YTDLError('Couldn\'t retrieve any matches for `{}`'.format(webpage_url))
+                    raise YTDLError(
+                        'Couldn\'t retrieve any matches for `{}`'.format(
+                            webpage_url))
 
-        return cls(ctx, discord.FFmpegPCMAudio(info['url'], **cls.FFMPEG_OPTIONS), data=info)
+        return cls(ctx,
+                   discord.FFmpegPCMAudio(info['url'], **cls.FFMPEG_OPTIONS),
+                   data=info)
 
     @staticmethod
     def parse_duration(duration: int):
@@ -219,14 +244,19 @@ class Song:
         self.requester = source.requester
 
     def create_embed(self):
-        embed = (discord.Embed(title='Now playing',
-                               description='```css\n{0.source.title}\n```'.format(self),
-                               color=discord.Color.blurple())
-                 .add_field(name='Duration', value=self.source.duration)
-                 .add_field(name='Requested by', value=self.requester.mention)
-                 .add_field(name='Uploader', value='[{0.source.uploader}]({0.source.uploader_url})'.format(self))
-                 .add_field(name='URL', value='[Click]({0.source.url})'.format(self))
-                 .set_thumbnail(url=self.source.thumbnail))
+        embed = (discord.Embed(
+            title='Now playing',
+            description='```css\n{0.source.title}\n```'.format(self),
+            color=discord.Color.blurple()).add_field(
+                name='Duration', value=self.source.duration).add_field(
+                    name='Requested by',
+                    value=self.requester.mention).add_field(
+                        name='Uploader',
+                        value='[{0.source.uploader}]({0.source.uploader_url})'.
+                        format(self)).add_field(
+                            name='URL',
+                            value='[Click]({0.source.url})'.format(self)).
+                 set_thumbnail(url=self.source.thumbnail))
 
         return embed
 
@@ -234,7 +264,9 @@ class Song:
 class SongQueue(asyncio.Queue):
     def __getitem__(self, item):
         if isinstance(item, slice):
-            return list(itertools.islice(self._queue, item.start, item.stop, item.step))
+            return list(
+                itertools.islice(self._queue, item.start, item.stop,
+                                 item.step))
         else:
             return self._queue[item]
 
@@ -311,7 +343,8 @@ class VoiceState:
 
             self.current.source.volume = self._volume
             self.voice.play(self.current.source, after=self.play_next_song)
-            await self.current.source.channel.send(embed=self.current.create_embed())
+            await self.current.source.channel.send(
+                embed=self.current.create_embed())
 
             await self.next.wait()
 
@@ -354,17 +387,19 @@ class Music(commands.Cog):
 
     def cog_check(self, ctx: commands.Context):
         if not ctx.guild:
-            raise commands.NoPrivateMessage('This command can\'t be used in DM channels.')
+            raise commands.NoPrivateMessage(
+                'This command can\'t be used in DM channels.')
 
         return True
 
     async def cog_before_invoke(self, ctx: commands.Context):
         ctx.voice_state = self.get_voice_state(ctx)
 
-    async def cog_command_error(self, ctx: commands.Context, error: commands.CommandError):
+    async def cog_command_error(self, ctx: commands.Context,
+                                error: commands.CommandError):
         await ctx.send('An error occurred: {}'.format(str(error)))
 
-    @commands.command(name='join', invoke_without_subcommand=True)
+    @bot.command(name='join', invoke_without_subcommand=True)
     async def _join(self, ctx: commands.Context):
         """Joins a voice channel."""
 
@@ -375,15 +410,20 @@ class Music(commands.Cog):
 
         ctx.voice_state.voice = await destination.connect()
 
-    @commands.command(name='summon')
+    @bot.command(name='summon')
     @commands.has_permissions(manage_guild=True)
-    async def _summon(self, ctx: commands.Context, *, channel: discord.VoiceChannel = None):
+    async def _summon(self,
+                      ctx: commands.Context,
+                      *,
+                      channel: discord.VoiceChannel = None):
         """Summons the bot to a voice channel.
         If no channel was specified, it joins your channel.
         """
 
         if not channel and not ctx.author.voice:
-            raise VoiceError('You are neither connected to a voice channel nor specified a channel to join.')
+            raise VoiceError(
+                'You are neither connected to a voice channel nor specified a channel to join.'
+            )
 
         destination = channel or ctx.author.voice.channel
         if ctx.voice_state.voice:
@@ -392,7 +432,7 @@ class Music(commands.Cog):
 
         ctx.voice_state.voice = await destination.connect()
 
-    @commands.command(name='leave', aliases=['disconnect'])
+    @bot.command(name='leave', aliases=['disconnect'])
     @commands.has_permissions(manage_guild=True)
     async def _leave(self, ctx: commands.Context):
         """Clears the queue and leaves the voice channel."""
@@ -403,7 +443,7 @@ class Music(commands.Cog):
         await ctx.voice_state.stop()
         del self.voice_states[ctx.guild.id]
 
-    @commands.command(name='volume')
+    @bot.command(name='volume')
     async def _volume(self, ctx: commands.Context, *, volume: int):
         """Sets the volume of the player."""
 
@@ -416,31 +456,33 @@ class Music(commands.Cog):
         ctx.voice_state.volume = volume / 100
         await ctx.send('Volume of the player set to {}%'.format(volume))
 
-    @commands.command(name='now', aliases=['current', 'playing'])
+    @bot.command(name='now', aliases=['current', 'playing'])
     async def _now(self, ctx: commands.Context):
         """Displays the currently playing song."""
 
         await ctx.send(embed=ctx.voice_state.current.create_embed())
 
-    @commands.command(name='pause')
+    @bot.command(name='pause')
     @commands.has_permissions(manage_guild=True)
     async def _pause(self, ctx: commands.Context):
         """Pauses the currently playing song."""
 
-        if not ctx.voice_state.is_playing and ctx.voice_state.voice.is_playing():
+        if not ctx.voice_state.is_playing and ctx.voice_state.voice.is_playing(
+        ):
             ctx.voice_state.voice.pause()
             await ctx.message.add_reaction('⏯')
 
-    @commands.command(name='resume')
+    @bot.command(name='resume')
     @commands.has_permissions(manage_guild=True)
     async def _resume(self, ctx: commands.Context):
         """Resumes a currently paused song."""
 
-        if not ctx.voice_state.is_playing and ctx.voice_state.voice.is_paused():
+        if not ctx.voice_state.is_playing and ctx.voice_state.voice.is_paused(
+        ):
             ctx.voice_state.voice.resume()
             await ctx.message.add_reaction('⏯')
 
-    @commands.command(name='stop')
+    @bot.command(name='stop')
     @commands.has_permissions(manage_guild=True)
     async def _stop(self, ctx: commands.Context):
         """Stops playing song and clears the queue."""
@@ -451,7 +493,7 @@ class Music(commands.Cog):
             ctx.voice_state.voice.stop()
             await ctx.message.add_reaction('⏹')
 
-    @commands.command(name='skip')
+    @bot.command(name='skip')
     async def _skip(self, ctx: commands.Context):
         """Vote to skip a song. The requester can automatically skip.
         3 skip votes are needed for the song to be skipped.
@@ -473,12 +515,13 @@ class Music(commands.Cog):
                 await ctx.message.add_reaction('⏭')
                 ctx.voice_state.skip()
             else:
-                await ctx.send('Skip vote added, currently at **{}/3**'.format(total_votes))
+                await ctx.send('Skip vote added, currently at **{}/3**'.format(
+                    total_votes))
 
         else:
             await ctx.send('You have already voted to skip this song.')
 
-    @commands.command(name='queue')
+    @bot.command(name='queue')
     async def _queue(self, ctx: commands.Context, *, page: int = 1):
         """Shows the player's queue.
         You can optionally specify the page to show. Each page contains 10 elements.
@@ -494,11 +537,14 @@ class Music(commands.Cog):
         end = start + items_per_page
 
         queue = ''
-        for i, song in enumerate(ctx.voice_state.songs[start:end], start=start):
-            queue += '`{0}.` [**{1.source.title}**]({1.source.url})\n'.format(i + 1, song)
+        for i, song in enumerate(ctx.voice_state.songs[start:end],
+                                 start=start):
+            queue += '`{0}.` [**{1.source.title}**]({1.source.url})\n'.format(
+                i + 1, song)
 
-        embed = (discord.Embed(description='**{} tracks:**\n\n{}'.format(len(ctx.voice_state.songs), queue))
-                 .set_footer(text='Viewing page {}/{}'.format(page, pages)))
+        embed = (discord.Embed(description='**{} tracks:**\n\n{}'.format(
+            len(ctx.voice_state.songs), queue)).set_footer(
+                text='Viewing page {}/{}'.format(page, pages)))
         await ctx.send(embed=embed)
 
     @commands.command(name='shuffle')
@@ -511,7 +557,7 @@ class Music(commands.Cog):
         ctx.voice_state.songs.shuffle()
         await ctx.message.add_reaction('✅')
 
-    @commands.command(name='remove')
+    @bot.command(name='remove')
     async def _remove(self, ctx: commands.Context, index: int):
         """Removes a song from the queue at a given index."""
 
@@ -521,7 +567,7 @@ class Music(commands.Cog):
         ctx.voice_state.songs.remove(index - 1)
         await ctx.message.add_reaction('✅')
 
-    @commands.command(name='loop')
+    @bot.command(name='loop')
     async def _loop(self, ctx: commands.Context):
         """Loops the currently playing song.
         Invoke this command again to unloop the song.
@@ -534,7 +580,7 @@ class Music(commands.Cog):
         ctx.voice_state.loop = not ctx.voice_state.loop
         await ctx.message.add_reaction('✅')
 
-    @commands.command(name='play')
+    @bot.command(name='play')
     async def _play(self, ctx: commands.Context, *, search: str):
         """Plays a song.
         If there are songs in the queue, this will be queued until the
@@ -548,9 +594,13 @@ class Music(commands.Cog):
 
         async with ctx.typing():
             try:
-                source = await YTDLSource.create_source(ctx, search, loop=self.bot.loop)
+                source = await YTDLSource.create_source(ctx,
+                                                        search,
+                                                        loop=self.bot.loop)
             except YTDLError as e:
-                await ctx.send('An error occurred while processing this request: {}'.format(str(e)))
+                await ctx.send(
+                    'An error occurred while processing this request: {}'.
+                    format(str(e)))
             else:
                 song = Song(source)
 
@@ -561,19 +611,16 @@ class Music(commands.Cog):
     @_play.before_invoke
     async def ensure_voice_state(self, ctx: commands.Context):
         if not ctx.author.voice or not ctx.author.voice.channel:
-            raise commands.CommandError('You are not connected to any voice channel.')
+            raise commands.CommandError(
+                'You are not connected to any voice channel.')
 
         if ctx.voice_client:
             if ctx.voice_client.channel != ctx.author.voice.channel:
-                raise commands.CommandError('Bot is already in a voice channel.')
+                raise commands.CommandError(
+                    'Bot is already in a voice channel.')
 
 
-bot = commands.Bot('music.', description='Yet another music bot.')
+bot = commands.Bot('!', description='Yet another music bot.')
 bot.add_cog(Music(bot))
-
-
-
-
-
 
 bot.run(TOKEN)
