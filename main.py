@@ -9,7 +9,7 @@ import functools
 import itertools
 import math
 from async_timeout import timeout
-
+import nacl 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD = os.getenv('DISCORD_GUILD')
@@ -84,8 +84,7 @@ async def raven(ctx):
 
 @bot.command(name='invite', help='give the bot invite link')
 async def link(ctx):
-    botLink = [
-        "https://discord.com/api/oauth2/authorize?client_id=889513117032267816&permissions=0&redirect_uri=https%3A%2F%2Fdiscord.events.stdlib.com%2Fdiscord%2Fauth%2F&scope=bot"
+    botLink = ["https://discord.com/api/oauth2/authorize?client_id=890917482880192533&permissions=2150646784&scope=bot"
     ]
     await ctx.send(botLink)
 
@@ -620,7 +619,5 @@ class Music(commands.Cog):
                     'Bot is already in a voice channel.')
 
 
-bot = commands.Bot('!', description='Yet another music bot.')
-bot.add_cog(Music(bot))
 
 bot.run(TOKEN)
