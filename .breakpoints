@@ -1,11 +1,19 @@
 {
   "files": {
+    ".breakpoints": [
+      {
+        "id": "3aabb316-96fb-4d60-8b0f-7c551411a8fb",
+        "line": 20,
+        "version": 1,
+        "index": 390
+      }
+    ],
     "bot.py": [
       {
         "id": "7fb0f398-f4b2-404b-8964-a3216d9b8603",
-        "line": 19,
-        "version": 1,
-        "index": 287
+        "line": 1,
+        "version": 5,
+        "index": 0
       }
     ],
     "main.py": [
