@@ -88,6 +88,11 @@ async def link(ctx):
     ]
     await ctx.send(botLink)
 
+@bot.command(name= "karl", help= "prints fuckboy")
+async def fuck(ctx):
+  boy = ['karl like dick']
+  await ctx.send(boy)
+ 
 
 # music feature
 
@@ -617,7 +622,6 @@ class Music(commands.Cog):
             if ctx.voice_client.channel != ctx.author.voice.channel:
                 raise commands.CommandError(
                     'Bot is already in a voice channel.')
-
 
 
 bot.run(TOKEN)
